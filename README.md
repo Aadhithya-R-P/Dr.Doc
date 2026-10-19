@@ -5,10 +5,18 @@ live public GitHub issues using RAG and MCP.
 
 ## Actual status
 
-Only Checkpoint 1 is implemented: FastAPI, validated configuration, a health
-endpoint and tests. Database, PDFs, embeddings, answer generation, MCP, React,
-CI/CD and deployment are not implemented. Neither target resume claim is
-satisfied yet. No API keys or external services are required for this checkpoint.
+Checkpoint 1 provides FastAPI, validated configuration, a health endpoint and tests.
+Checkpoint 2 adds PostgreSQL connection setup, document/chunk models, and an Alembic
+migration with pgvector, applied and tested against Neon PostgreSQL. Live results
+are recorded in [database verification notes](docs/database.md). Checkpoint 3 adds
+local PDF validation, extraction and chunking. Upload/indexing, model-backed
+ingestion, the retrieval API, answer generation, MCP, React, CI/CD and deployment
+are not implemented. Neither target resume claim is satisfied yet. Liveness and
+routine tests work without external services.
+
+An early [embedding smoke check](docs/embedding-check.md) successfully called
+`gemini-embedding-2` for one synthetic sentence and received 768 finite values.
+This verifies current provider access and vector shape, not ingestion or retrieval quality.
 
 ## Setup and run (PowerShell)
 
@@ -44,14 +52,23 @@ backend/
     __init__.py
     main.py
     config.py
+    database.py
+    models/
+      base.py
+      document.py
+      chunk.py
     routes/
       __init__.py
       health.py
     schemas/
       __init__.py
       health.py
+      pdf.py
     services/
       __init__.py
+      pdf_extraction.py
+      chunking.py
+      pdf_preparation.py
   tests/
     test_health.py
     test_config.py
@@ -62,8 +79,9 @@ docs/
 ```
 
 Routes handle HTTP requests, schemas describe request/response data, and services
-will contain application logic. The health endpoint needs no service yet.
-Database models will be added when we reach Checkpoint 2.
+contain application logic. The health endpoint needs no service.
+SQLAlchemy models describe database tables; Pydantic schemas describe API data.
+See [database setup and design](docs/database.md) for migrations and connection setup.
 
 ## Settings
 
@@ -74,6 +92,8 @@ Defaults work without configuration. Optionally copy `backend/.env.example` to
 | --- | --- | --- |
 | `DRDOC_APP_NAME` | `Dr.Doc` | Nonempty string |
 | `DRDOC_ENVIRONMENT` | `development` | `development`, `test`, `production` |
+| `DRDOC_DATABASE_URL` | unset | PostgreSQL URL; remote connections require SSL |
+| `DRDOC_GEMINI_API_KEY` | unset | Private Google AI Studio key; Free-tier project only |
 
 Invalid settings and unknown dotenv entries fail validation during startup.
 The dotenv path is relative to the backend source, independent of the shell's
@@ -103,23 +123,41 @@ From `backend/`:
 
 ```powershell
 uv run --locked pytest -q
+uv run --locked pytest --run-db -q
 ```
 
 Tests check the HTTP status/body, environment settings, invalid-value rejection,
-and the stable dotenv location. Routine tests make no external service requests
-and consume no model quota. No linter or formatter is configured.
+and the stable dotenv location. Routine tests skip real database cases; `--run-db`
+requires a configured PostgreSQL connection and runs isolated schema tests for
+vector search, constraints and deletion. Neither consumes model quota.
+No linter or formatter is configured.
+
+## Local PDF preview
+
+From `backend/`:
+
+```powershell
+uv run --locked python -m scripts.preview_pdf "C:\path\sample.pdf"
+```
+
+Only text-based PDFs are supported. Defaults: 5 MiB, 30 pages, 200,000 extracted
+characters, ~500 estimated tokens per chunk with ~75 overlap. No PDF copy,
+embeddings or database rows are saved by this command. Token counts use a documented
+four-characters-per-token approximation. See [PDF processing](docs/pdf-processing.md)
+for limits, scanned-page handling, provenance, tests and extraction limitations.
 
 ## Planned architecture and boundaries
 
-The backend will use PostgreSQL + pgvector, SQLAlchemy and Alembic, with separate
-PDF extraction, chunking, embedding, retrieval and answer services. A real MCP
+The backend uses PostgreSQL + pgvector, SQLAlchemy and Alembic, with separate PDF
+extraction and chunking services. Embedding, retrieval and answer services come next. A real MCP
 client will fetch allowlisted public GitHub evidence. Combined questions must
 use document and live evidence in one bounded workflow. Schema design and final
 routing behavior require review at their checkpoints. Questions will initially
 be self-contained, without reliable conversational memory.
 
 The budget is ₹0. Gemini, Neon, Render, Vercel and GitHub Actions are proposed
-services, not verified account entitlements or configured deployments. Check
+services. Neon is connected; its account-specific Free limits remain to be confirmed
+in the console. The other services are not verified entitlements or deployments. Check
 official availability, account quotas and data-use policies before integration.
 No billing or paid fallback is authorized. Free hosting cold starts and limited
 capacity are acceptable. Agree on sample content, operator protection and public

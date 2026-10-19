@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -19,3 +19,5 @@ class Settings(BaseSettings):
 
     app_name: str = Field(default="Dr.Doc", min_length=1)
     environment: Literal["development", "test", "production"] = "development"
+    database_url: SecretStr | None = None
+    gemini_api_key: SecretStr | None = None

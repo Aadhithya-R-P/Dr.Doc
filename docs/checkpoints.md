@@ -1,8 +1,8 @@
 # Checkpoints
 
-1. API skeleton, validated settings, health endpoint and tests.
-2. Review database design, then add PostgreSQL + pgvector, SQLAlchemy and Alembic.
-3. Bounded PDF validation, extraction and chunking with page provenance.
+1. Implemented and tested: API skeleton, validated settings, health endpoint.
+2. Implemented and tested on Neon: PostgreSQL + pgvector, SQLAlchemy and Alembic.
+3. Implemented and tested: bounded PDF validation, extraction, estimated-token chunking and page provenance.
 4. Verify free embedding access, then add embeddings and atomic ingestion.
 5. Retrieval, grounded answers, citations and unsupported questions.
 6. Minimal React UI and early RAG deployment with agreed access limits.

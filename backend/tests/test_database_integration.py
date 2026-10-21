@@ -59,7 +59,7 @@ def test_migration_vector_roundtrip_cosine_search_and_document_filter(db_connect
         assert filtered.id == b.id
         assert session.scalar(select(distance).where(Chunk.id == a.id)) == pytest.approx(0)
         assert first.created_at.tzinfo is not None
-        assert session.scalar(text("SELECT version_num FROM alembic_version")) == "0001"
+        assert session.scalar(text("SELECT version_num FROM alembic_version")) == "0002"
 
 
 def test_database_cascade_removes_chunks_from_search(db_connection):

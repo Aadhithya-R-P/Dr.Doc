@@ -4,6 +4,8 @@ from fastapi import FastAPI
 
 from app.config import Settings
 from app.routes.health import router as health_router
+from app.routes.documents import router as documents_router
+from app.upload_limits import UploadLimitsMiddleware
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -11,6 +13,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application = FastAPI(title=settings.app_name, version="0.1.0")
     application.state.settings = settings
     application.include_router(health_router)
+    application.include_router(documents_router)
+    application.add_middleware(UploadLimitsMiddleware)
     return application
 
 

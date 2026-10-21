@@ -133,7 +133,15 @@ only synthetic test data. Use only public/sample document content later and revi
 provider privacy/data-use terms before ingestion or model calls. No billing or
 paid services are enabled by this implementation.
 
-## Verified results — 19 October 2026
+## Checkpoint 4 schema evolution
+
+Migration `0002` adds `documents.embedding_input_version`, defaulting existing rows
+to `legacy-unversioned`. New ingestion writes `gemini2-retrieval-v1` explicitly.
+This is needed to distinguish vectors produced with different input formatting.
+The current model definitions include this column; the original schema diagram
+above describes the initial revision. See [ingestion](ingestion.md) for current behavior.
+
+## Checkpoint 2 verified results — 19 October 2026
 
 The user's console query confirmed PostgreSQL 18.6. Using the private direct URL:
 

@@ -29,6 +29,9 @@ class Document(Base):
     page_count: Mapped[int] = mapped_column(Integer)
     embedding_model: Mapped[str] = mapped_column(String(100))
     embedding_dimensions: Mapped[int] = mapped_column(Integer)
+    embedding_input_version: Mapped[str] = mapped_column(
+        String(64), server_default="legacy-unversioned"
+    )
     chunking_version: Mapped[str] = mapped_column(String(50))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

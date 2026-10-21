@@ -9,9 +9,10 @@ Checkpoint 1 provides FastAPI, validated configuration, a health endpoint and te
 Checkpoint 2 adds PostgreSQL connection setup, document/chunk models, and an Alembic
 migration with pgvector, applied and tested against Neon PostgreSQL. Live results
 are recorded in [database verification notes](docs/database.md). Checkpoint 3 adds
-local PDF validation, extraction and chunking. Upload/indexing, model-backed
-ingestion, the retrieval API, answer generation, MCP, React, CI/CD and deployment
-are not implemented. Neither target resume claim is satisfied yet. Liveness and
+local PDF validation, extraction and chunking. Checkpoint 4 adds a local PDF upload
+endpoint, bounded Gemini embeddings and atomic indexing in Neon. The retrieval API,
+answer generation, MCP, React, CI/CD and deployment are not implemented.
+Neither target resume claim is satisfied yet. Liveness and
 routine tests work without external services.
 
 An early [embedding smoke check](docs/embedding-check.md) successfully called
@@ -145,6 +146,21 @@ characters, ~500 estimated tokens per chunk with ~75 overlap. No PDF copy,
 embeddings or database rows are saved by this command. Token counts use a documented
 four-characters-per-token approximation. See [PDF processing](docs/pdf-processing.md)
 for limits, scanned-page handling, provenance, tests and extraction limitations.
+
+## Index a PDF locally
+
+From `backend/`, apply migrations with `uv run --locked alembic upgrade head`, then
+start the development server. Open http://127.0.0.1:8000/docs and use
+`POST /documents` to upload a small public/sample text PDF. The endpoint returns
+201 and `status: ready` only after all chunks and vectors commit. Identical bytes
+return 409 even with a different filename. There is a 12-chunk ingestion cap and
+one active upload per process. Quota/provider failures are explicit; no paid fallback.
+
+This endpoint is for localhost use and is disabled in production mode until
+operator protection is agreed. Original PDFs aren't retained. Google receives
+extracted chunk text; its Free tier marks inputs as used for product improvement.
+See [ingestion design and verification](docs/ingestion.md) for setup, limits, API
+errors, compatibility versions and transaction behavior.
 
 ## Planned architecture and boundaries
 

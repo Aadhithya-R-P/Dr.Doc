@@ -13,6 +13,7 @@ from app.database import create_database_engine
 def pytest_addoption(parser):
     parser.addoption("--run-db", action="store_true", help="Run real PostgreSQL integration tests.")
     parser.addoption("--run-live-embedding", action="store_true", help="Opt into one real synthetic-text Gemini request.")
+    parser.addoption("--run-live-rag", action="store_true", help="Opt into bounded real RAG evaluation calls on synthetic documents.")
 
 
 @pytest.fixture

@@ -10,8 +10,9 @@ Checkpoint 2 adds PostgreSQL connection setup, document/chunk models, and an Ale
 migration with pgvector, applied and tested against Neon PostgreSQL. Live results
 are recorded in [database verification notes](docs/database.md). Checkpoint 3 adds
 local PDF validation, extraction and chunking. Checkpoint 4 adds a local PDF upload
-endpoint, bounded Gemini embeddings and atomic indexing in Neon. The retrieval API,
-answer generation, MCP, React, CI/CD and deployment are not implemented.
+endpoint, bounded Gemini embeddings and atomic indexing in Neon. Checkpoint 5 adds
+document listing/deletion, filtered vector retrieval, grounded Gemini answers and
+backend-validated citation IDs. MCP, React, CI/CD and deployment are not implemented.
 Neither target resume claim is satisfied yet. Liveness and
 routine tests work without external services.
 
@@ -162,23 +163,47 @@ extracted chunk text; its Free tier marks inputs as used for product improvement
 See [ingestion design and verification](docs/ingestion.md) for setup, limits, API
 errors, compatibility versions and transaction behavior.
 
-## Planned architecture and boundaries
+## Ask a document question
+
+With the local server running, open http://127.0.0.1:8000/docs. Upload a public text
+PDF, list its ID through `GET /documents`, then call `POST /questions`:
+
+```json
+{
+  "question": "What failure behavior does the architecture describe?"
+}
+```
+
+Optionally include `"document_ids": ["your-document-uuid"]`. The response distinguishes
+`answered`, `no_evidence` and `insufficient_evidence`. Inspect each `[D1]` marker's
+filename, page range and source excerpt. Unknown model citation IDs are rejected;
+valid IDs alone do not prove factual support. `DELETE /documents/{id}` removes the
+document and its chunks from future retrieval.
+
+Answers use Gemini 3.5 Flash-Lite with one bounded attempt and no paid fallback.
+Questions are self-contained. The current retrieval cutoff is provisional; provider
+failures return explicit errors rather than answers. See [RAG design and verified
+evaluation](docs/rag.md) and [actual synthetic results](backend/evaluation/rag_results.json).
+
+## Remaining architecture and boundaries
 
 The backend uses PostgreSQL + pgvector, SQLAlchemy and Alembic, with separate PDF
-extraction and chunking services. Embedding, retrieval and answer services come next. A real MCP
+extraction, chunking, embedding, retrieval and answer services. A real MCP
 client will fetch allowlisted public GitHub evidence. Combined questions must
-use document and live evidence in one bounded workflow. Schema design and final
-routing behavior require review at their checkpoints. Questions will initially
+use document and live evidence in one bounded workflow. Final routing behavior
+requires review at its checkpoint. Questions are
 be self-contained, without reliable conversational memory.
 
-The budget is ₹0. Gemini, Neon, Render, Vercel and GitHub Actions are proposed
-services. Neon is connected; its account-specific Free limits remain to be confirmed
-in the console. The other services are not verified entitlements or deployments. Check
+The budget is ₹0. Gemini and Neon are connected and live calls have been verified.
+The user confirmed the Gemini project is Free tier; remaining account quotas and
+Neon plan limits must be monitored in their consoles. Render, Vercel and GitHub
+Actions deployment are still proposed, not configured. Check
 official availability, account quotas and data-use policies before integration.
 No billing or paid fallback is authorized. Free hosting cold starts and limited
 capacity are acceptable. Agree on sample content, operator protection and public
 query limits before deployment. See `docs/checkpoints.md` for the sequence.
 
-Database design, ingestion/query flows, provider configuration, MCP, routing,
-evaluation, CI/CD and deployment documentation will evolve with implementation;
-they are not completed features.
+Database design, ingestion/query flows and current provider configuration are
+documented. Broader evaluation, MCP, combined routing, the frontend, CI/CD and
+deployment remain unfinished. Current synthetic evaluation is a smoke check,
+not a general accuracy benchmark.

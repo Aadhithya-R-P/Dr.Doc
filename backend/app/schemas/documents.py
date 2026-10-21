@@ -19,3 +19,17 @@ class DocumentCreated(BaseModel):
     chunking_version: str
     created_at: datetime
     warnings: tuple[str, ...] = ()
+
+
+class DocumentSummary(BaseModel):
+    id: UUID
+    filename: str
+    page_count: int
+    chunk_count: int
+    embedding_input_version: str
+    created_at: datetime
+
+
+class DocumentList(BaseModel):
+    items: list[DocumentSummary]
+    truncated: bool

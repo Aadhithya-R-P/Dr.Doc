@@ -11,14 +11,18 @@ class UploadLimitsMiddleware:
     def __init__(self, app):
         self.app = app
         self.gate = BoundedSemaphore(1)
+        self.question_gate = BoundedSemaphore(1)
         self.body_limit = PdfLimits().max_bytes + 64 * 1024
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] != "http" or scope["method"] != "POST" or scope["path"].rstrip("/") != "/documents":
+        if scope["type"] != "http" or scope["method"] != "POST" or scope["path"].rstrip("/") not in {"/documents", "/questions"}:
             return await self.app(scope, receive, send)
-        if not self.gate.acquire(blocking=False):
+        is_question = scope["path"].rstrip("/") == "/questions"
+        gate = self.question_gate if is_question else self.gate
+        limit = 16000 if is_question else self.body_limit
+        if not gate.acquire(blocking=False):
             return await JSONResponse(
-                {"detail": {"code": "upload_busy", "message": "Another upload is processing. Try later."}},
+                {"detail": {"code": "query_busy" if is_question else "upload_busy", "message": "Another request of this type is processing. Try later."}},
                 status_code=503, headers={"Retry-After": "5"},
             )(scope, receive, send)
         try:
@@ -28,9 +32,9 @@ class UploadLimitsMiddleware:
                 if message["type"] == "http.disconnect":
                     return
                 part = message.get("body", b"")
-                if len(body) + len(part) > self.body_limit:
+                if len(body) + len(part) > limit:
                     return await JSONResponse(
-                        {"detail": {"code": "file_too_large", "message": "Encoded upload exceeds the request size limit."}},
+                        {"detail": {"code": "request_too_large" if is_question else "file_too_large", "message": "Request exceeds the size limit."}},
                         status_code=413,
                     )(scope, receive, send)
                 body.extend(part)
@@ -47,4 +51,4 @@ class UploadLimitsMiddleware:
 
             await self.app(scope, replay, send)
         finally:
-            self.gate.release()
+            gate.release()

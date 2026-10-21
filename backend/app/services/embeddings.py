@@ -45,6 +45,33 @@ class GeminiEmbedder:
     def __init__(self, settings: Settings):
         self.settings = settings
 
+    def embed_query(self, question: str) -> list[float]:
+        """Use the query side of our versioned asymmetric retrieval format."""
+        key = self.settings.gemini_api_key
+        if key is None or not key.get_secret_value().strip():
+            raise EmbeddingUnavailable("embedding_not_configured", "Embedding service is not configured.")
+        try:
+            with genai.Client(
+                api_key=key.get_secret_value(), vertexai=False,
+                http_options=types.HttpOptions(
+                    timeout=15000, retry_options=types.HttpRetryOptions(attempts=1)
+                ),
+            ) as client:
+                result = client.models.embed_content(
+                    model=MODEL, contents=f"task: question answering | query: {question}",
+                    config=types.EmbedContentConfig(output_dimensionality=DIMENSIONS),
+                )
+            if not result.embeddings or len(result.embeddings) != 1:
+                raise EmbeddingUnavailable("invalid_embedding", "Unexpected query embedding count.", 502)
+            return validate_vector(result.embeddings[0].values)
+        except EmbeddingUnavailable:
+            raise
+        except errors.APIError as exc:
+            code = "embedding_quota_exhausted" if exc.code == 429 else "embedding_provider_failure"
+            raise EmbeddingUnavailable(code, "Question embedding is temporarily unavailable. Try later.") from None
+        except Exception:
+            raise EmbeddingUnavailable("embedding_provider_failure", "Question embedding failed or timed out.") from None
+
     def embed_documents(self, passages: list[str]) -> list[list[float]]:
         key = self.settings.gemini_api_key
         if key is None or not key.get_secret_value().strip():

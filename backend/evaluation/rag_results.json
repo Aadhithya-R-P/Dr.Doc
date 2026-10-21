@@ -1,0 +1,88 @@
+{
+  "model": "gemini-3.5-flash-lite",
+  "corpus": "two generated synthetic public PDFs",
+  "cases": [
+    {
+      "case": "answerable",
+      "question": "What is the Redis cache TTL and what happens if Redis is unavailable?",
+      "http_status": 200,
+      "response": {
+        "mode": "rag",
+        "status": "answered",
+        "answer": "The Redis cache TTL is 45 seconds. [D1]\n\nIf Redis is unavailable, requests fall back to PostgreSQL. [D1]",
+        "sources": [
+          {
+            "source_id": "D1",
+            "document_id": "2c49385b-9f17-412b-8963-696dc3465bb6",
+            "chunk_id": "7d1ebb28-d30b-4e91-b4da-8ebcec75eed9",
+            "filename": "public-architecture.pdf",
+            "page_start": 1,
+            "page_end": 2,
+            "excerpt": "Public synthetic architecture example: Redis caches database reads.\n\nThe Redis cache TTL is 45 seconds. If Redis is unavailable, requests fall back to PostgreSQL.",
+            "cosine_distance": 0.22692503298745215
+          }
+        ]
+      },
+      "citation_mapping_check": "passed",
+      "expected_fact_check": "passed"
+    },
+    {
+      "case": "unsupported",
+      "question": "What is the CEO's date of birth?",
+      "http_status": 200,
+      "response": {
+        "mode": "rag",
+        "status": "insufficient_evidence",
+        "answer": "The retrieved passages do not provide enough information to answer this question.",
+        "sources": [
+          {
+            "source_id": "D1",
+            "document_id": "2c49385b-9f17-412b-8963-696dc3465bb6",
+            "chunk_id": "7d1ebb28-d30b-4e91-b4da-8ebcec75eed9",
+            "filename": "public-architecture.pdf",
+            "page_start": 1,
+            "page_end": 2,
+            "excerpt": "Public synthetic architecture example: Redis caches database reads.\n\nThe Redis cache TTL is 45 seconds. If Redis is unavailable, requests fall back to PostgreSQL.",
+            "cosine_distance": 0.45392331206340586
+          }
+        ]
+      },
+      "abstention_check": "passed"
+    },
+    {
+      "case": "filtered",
+      "question": "How many maintainers must approve a release?",
+      "http_status": 200,
+      "response": {
+        "mode": "rag",
+        "status": "answered",
+        "answer": "Every release requires approval from two maintainers. [D1]",
+        "sources": [
+          {
+            "source_id": "D1",
+            "document_id": "864b208c-f149-4e4b-b30d-0a65a4c1a132",
+            "chunk_id": "46e04dbf-8485-415d-b261-7a0ce9a77871",
+            "filename": "public-release-policy.pdf",
+            "page_start": 1,
+            "page_end": 1,
+            "excerpt": "Public synthetic release policy. Every release requires approval from two maintainers.",
+            "cosine_distance": 0.1723842086401417
+          }
+        ]
+      },
+      "citation_mapping_check": "passed",
+      "expected_fact_check": "passed"
+    },
+    {
+      "case": "deleted_document",
+      "response": {
+        "mode": "rag",
+        "status": "no_evidence",
+        "answer": "No compatible indexed documents match this selection.",
+        "sources": []
+      },
+      "check": "passed"
+    }
+  ],
+  "limits": "Small smoke evaluation, not a benchmark. Temporary database rows are rolled back."
+}

@@ -3,11 +3,13 @@
 from collections.abc import Iterator
 from functools import partial
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, Response
 
 from app.database import create_database_engine, create_session
-from app.schemas.documents import DocumentCreated
+from app.schemas.documents import DocumentCreated, DocumentList
+from app.services.documents import DocumentCatalog
 from app.services.embeddings import EmbeddingUnavailable, GeminiEmbedder
 from app.services.ingestion import IngestionError, IngestionService
 from app.services.pdf_extraction import PdfLimits, PdfValidationError
@@ -45,3 +47,20 @@ def upload_document(
         raise HTTPException(exc.status_code, detail={"code": exc.code, "message": str(exc)}, headers=headers) from None
     finally:
         file.file.close()
+
+
+@router.get("", response_model=DocumentList)
+def list_documents(service: Annotated[IngestionService, Depends(get_ingestion_service)]):
+    try:
+        return DocumentCatalog(service.session_factory).list()
+    except IngestionError as exc:
+        raise HTTPException(exc.status_code, detail={"code": exc.code, "message": str(exc)}) from None
+
+
+@router.delete("/{document_id}", status_code=204)
+def delete_document(document_id: UUID, service: Annotated[IngestionService, Depends(get_ingestion_service)]):
+    try:
+        DocumentCatalog(service.session_factory).delete(document_id)
+        return Response(status_code=204)
+    except IngestionError as exc:
+        raise HTTPException(exc.status_code, detail={"code": exc.code, "message": str(exc)}) from None
